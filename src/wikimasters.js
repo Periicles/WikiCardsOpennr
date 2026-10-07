@@ -56,15 +56,21 @@ function applySetCookies(res) {
 
 // ---------- Requêtes HTTP ----------
 
-function authHeaders() {
+const isAbsolute = (p) => /^https?:\/\//i.test(p);
+const resolveUrl = (p) => (isAbsolute(p) ? p : `${config.wm.baseUrl}${p}`);
+const isSupabaseUrl = (url) => Boolean(config.wm.supabaseUrl) && url.startsWith(config.wm.supabaseUrl);
+
+function authHeaders(url) {
   const h = {};
-  if (state.auth.mode === 'cookie' && state.auth.cookie) h.Cookie = state.auth.cookie;
+  if (state.auth.mode === 'cookie' && state.auth.cookie && !isSupabaseUrl(url)) h.Cookie = state.auth.cookie;
   if (state.auth.mode === 'token' && state.auth.accessToken) h.Authorization = `Bearer ${state.auth.accessToken}`;
+  // Les endpoints Supabase (REST, RPC, edge functions) exigent la clé publique "anon".
+  if (isSupabaseUrl(url) && config.wm.supabaseAnonKey) h.apikey = config.wm.supabaseAnonKey;
   return h;
 }
 
-async function rawRequest(method, path, body) {
-  const url = `${config.wm.baseUrl}${path}`;
+async function rawRequest(method, path, body, { headers = authHeaders(resolveUrl(path)) } = {}) {
+  const url = resolveUrl(path);
   let res;
   try {
     res = await fetch(url, {
@@ -73,7 +79,7 @@ async function rawRequest(method, path, body) {
         Accept: 'application/json',
         'User-Agent': config.wm.userAgent,
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-        ...authHeaders(),
+        ...headers,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(20_000),
@@ -81,7 +87,7 @@ async function rawRequest(method, path, body) {
   } catch (err) {
     throw new WMError('network', `Network error: ${err.cause?.code || err.message}`);
   }
-  applySetCookies(res);
+  if (!isSupabaseUrl(url)) applySetCookies(res);
   const text = await res.text();
   let json = null;
   try { json = text ? JSON.parse(text) : null; } catch { /* corps non JSON */ }
@@ -92,14 +98,25 @@ export function hasCredentials() {
   return state.auth.mode === 'cookie' ? Boolean(state.auth.cookie) : Boolean(state.auth.accessToken || state.auth.refreshToken);
 }
 
+function refreshRequest() {
+  const token = state.auth.refreshToken;
+  if (config.wm.supabaseUrl) {
+    // Flux Supabase GoTrue : le refresh token est à usage unique et tourne à chaque appel.
+    if (!config.wm.supabaseAnonKey) {
+      throw new WMError('http', 'WM_SUPABASE_ANON_KEY is missing: cannot refresh a Supabase session.');
+    }
+    return rawRequest('POST', `${config.wm.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, { refresh_token: token }, {
+      headers: { apikey: config.wm.supabaseAnonKey, Authorization: `Bearer ${config.wm.supabaseAnonKey}` },
+    });
+  }
+  return rawRequest('POST', config.wm.refreshPath, { refresh_token: token, refreshToken: token });
+}
+
 export async function refreshToken() {
   if (!state.auth.refreshToken) {
     throw new WMError('reconnect', 'No refresh token. Reconnect your session.');
   }
-  const { res, json, text } = await rawRequest('POST', config.wm.refreshPath, {
-    refresh_token: state.auth.refreshToken,
-    refreshToken: state.auth.refreshToken,
-  });
+  const { res, json, text } = await refreshRequest();
   if (!res.ok) {
     if (res.status === 400 || res.status === 401 || res.status === 403) {
       throw new WMError('reconnect', `Refresh rejected (${res.status}): refresh token is dead. Reconnect your session.`);
@@ -111,13 +128,53 @@ export async function refreshToken() {
   if (!access) throw new WMError('http', `Refresh response without access token: ${truncate(text)}`);
   state.auth.accessToken = access;
   if (refresh) state.auth.refreshToken = refresh;
+  state.auth.expiresAt = tokenExpiry(json, access);
   save();
+}
+
+// Expiration du token d'accès en ms : champ expires_at (s) ou claim "exp" du JWT.
+function tokenExpiry(json, access) {
+  if (Number.isFinite(json?.expires_at)) return json.expires_at * 1000;
+  if (Number.isFinite(json?.expires_in)) return Date.now() + json.expires_in * 1000;
+  try {
+    const payload = JSON.parse(Buffer.from(access.split('.')[1], 'base64url').toString('utf8'));
+    if (Number.isFinite(payload.exp)) return payload.exp * 1000;
+  } catch { /* token opaque */ }
+  return null;
+}
+
+/**
+ * Lit une session Supabase telle que stockée par le site : valeur du cookie
+ * sb-<projet>-auth-token (morceaux .0, .1… mis bout à bout, préfixe "base64-")
+ * ou JSON brut. Renvoie { accessToken, refreshToken, expiresAt, username }.
+ */
+export function parseSupabaseSession(raw) {
+  let text = String(raw || '').replace(/\s+/g, '');
+  if (!text) throw new Error('Session vide');
+  try { text = decodeURIComponent(text); } catch { /* déjà décodé */ }
+  if (text.startsWith('base64-')) text = Buffer.from(text.slice(7), 'base64url').toString('utf8');
+  let json;
+  try { json = JSON.parse(text); } catch { throw new Error('Session illisible : colle la valeur complète du cookie sb-…-auth-token (morceaux .0 puis .1 à la suite).'); }
+  if (Array.isArray(json)) json = { access_token: json[0], refresh_token: json[1] };
+  const session = json.currentSession ?? json.session ?? json;
+  if (!session.access_token || !session.refresh_token) throw new Error('access_token ou refresh_token manquant dans la session.');
+  const meta = session.user?.user_metadata ?? {};
+  return {
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
+    expiresAt: tokenExpiry(session, session.access_token),
+    username: meta.username ?? meta.user_name ?? meta.name ?? '',
+  };
 }
 
 /** Requête authentifiée, avec un rafraîchissement de token automatique en mode "token". */
 async function request(method, path, body) {
+  const a = state.auth;
+  if (a.mode === 'token' && a.refreshToken && (!a.accessToken || (a.expiresAt && a.expiresAt - Date.now() < 60_000))) {
+    await refreshToken();
+  }
   let r = await rawRequest(method, path, body);
-  if (r.res.status === 401 && state.auth.mode === 'token' && state.auth.refreshToken) {
+  if (r.res.status === 401 && a.mode === 'token' && a.refreshToken) {
     await refreshToken();
     r = await rawRequest(method, path, body);
   }

@@ -13,7 +13,7 @@ function defaults() {
       paused: false,
     },
     // Session WikiMasters. Jamais renvoyée telle quelle au navigateur.
-    auth: { mode: 'cookie', cookie: '', accessToken: '', refreshToken: '', username: '' },
+    auth: { mode: 'cookie', cookie: '', accessToken: '', refreshToken: '', expiresAt: null, username: '' },
     // null | 'reconnect' | 'verification' : le bot attend une action humaine.
     blocked: null,
     stats: { packsOpened: 0, cardsFound: 0, runsCompleted: 0 },

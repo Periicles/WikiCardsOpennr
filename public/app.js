@@ -201,7 +201,7 @@ function openSettings() {
   $('packs').value = state.settings.packsPerRun;
   $('mode').value = state.session.mode;
   $('wm-username').value = state.username || '';
-  $('cookie').value = $('access').value = $('refresh').value = '';
+  $('cookie').value = $('access').value = $('refresh').value = $('sb-session').value = '';
   const s = state.session;
   $('session-status').textContent = `Session enregistrée : cookie ${s.hasCookie ? '✓' : '✗'} · access token ${s.hasAccessToken ? '✓' : '✗'} · refresh token ${s.hasRefreshToken ? '✓' : '✗'}`;
   syncModeFields();
@@ -226,6 +226,7 @@ $('settings-form').addEventListener('submit', async (e) => {
       cookie: $('cookie').value,
       accessToken: $('access').value,
       refreshToken: $('refresh').value,
+      supabaseSession: $('mode').value === 'token' ? $('sb-session').value : '',
     }));
     $('settings').close();
     toast('Paramètres enregistrés');

@@ -104,6 +104,7 @@ function publicState() {
       hasCookie: Boolean(state.auth.cookie),
       hasAccessToken: Boolean(state.auth.accessToken),
       hasRefreshToken: Boolean(state.auth.refreshToken),
+      expiresAt: state.auth.expiresAt ?? null,
     },
     blocked: state.blocked,
     paused: state.settings.paused,

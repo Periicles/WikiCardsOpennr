@@ -45,7 +45,10 @@ Le client lit plusieurs formats de réponse (`cards`, `pack.cards`, `data.cards`
 Dans le tableau de bord, ouvre **Paramètres** (icône curseurs) :
 
 - **Mode cookie** : copie la valeur de l'en-tête `Cookie` d'une requête WikiMasters dans les DevTools. Le bot met à jour automatiquement les cookies renvoyés par le serveur (`Set-Cookie`).
-- **Mode token** : colle l'access token et le refresh token. En cas de `401`, le bot rafraîchit le token. Si le refresh est refusé, le run passe en `needs reconnect` et le bot attend une nouvelle session.
+- **Session Supabase (recommandé)** : WikiMasters utilise Supabase Auth. Dans les DevTools, onglet **Application** > **Cookies**, copie la valeur de `sb-<projet>-auth-token.0` puis celle de `.1` **à la suite**, et colle le tout dans le champ « Session Supabase » (mode token). Le bot en extrait l'access token, le refresh token et ton pseudo. Renseigne aussi `WM_SUPABASE_URL` (`https://<projet>.supabase.co`) et `WM_SUPABASE_ANON_KEY` (l'en-tête `apikey` d'une requête vers `*.supabase.co` dans l'onglet Réseau) : le bot renouvelle alors la session avant qu'elle expire, comme le fait le site.
+  - Le refresh token Supabase est **à usage unique**. Si le navigateur et le bot utilisent la même session, celui qui renouvelle en second est rejeté (`refresh token is dead`). Après avoir collé la session, ferme l'onglet WikiMasters sans te déconnecter. Une déconnexion révoque toutes les sessions, y compris celle du bot.
+  - Ne partage jamais cette valeur : elle donne accès à ton compte.
+- **Mode token (manuel)** : colle l'access token et le refresh token. En cas de `401`, le bot rafraîchit le token. Si le refresh est refusé, le run passe en `needs reconnect` et le bot attend une nouvelle session.
 
 Les secrets ne sont jamais renvoyés au navigateur. Le tableau de bord indique seulement s'ils sont présents.
 

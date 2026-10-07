@@ -28,6 +28,9 @@ export const config = {
     openPackPath: env.WM_OPEN_PACK_PATH || '/api/packs/open',
     packsStatusPath: env.WM_PACKS_STATUS_PATH || '',
     refreshPath: env.WM_REFRESH_PATH || '/api/auth/refresh',
+    // Si WikiMasters utilise Supabase Auth : URL du projet et clé publique "anon".
+    supabaseUrl: (env.WM_SUPABASE_URL || '').replace(/\/+$/, ''),
+    supabaseAnonKey: env.WM_SUPABASE_ANON_KEY || '',
     userAgent: env.WM_USER_AGENT || 'WikiMastersBot/1.0 (+self-hosted)',
   },
   defaults: {

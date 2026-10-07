@@ -94,6 +94,11 @@
       </div>
       <div data-mode="token" hidden>
         <div class="field">
+          <label for="sb-session">Session Supabase (cookie <code>sb-…-auth-token</code>)</label>
+          <textarea id="sb-session" placeholder="Colle la valeur de .0 puis celle de .1 à la suite (commence par base64-…)" autocomplete="off" spellcheck="false"></textarea>
+          <small>Remplit automatiquement l'access token, le refresh token et le pseudo. Sinon, colle-les à la main ci-dessous.</small>
+        </div>
+        <div class="field">
           <label for="access">Access token</label>
           <textarea id="access" placeholder="Laisser vide pour conserver la valeur actuelle" autocomplete="off" spellcheck="false"></textarea>
         </div>

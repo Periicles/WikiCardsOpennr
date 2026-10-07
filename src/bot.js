@@ -129,19 +129,29 @@ export function updateSettings({ intervalMinutes, packsPerRun }) {
   schedule();
 }
 
-export function updateSession({ mode, cookie, accessToken, refreshToken, username }) {
+export function updateSession({ mode, cookie, accessToken, refreshToken, username, supabaseSession }) {
   const a = state.auth;
+  if (typeof supabaseSession === 'string' && supabaseSession.trim()) {
+    // Lève une erreur lisible si la valeur collée n'est pas une session valide.
+    const parsed = wm.parseSupabaseSession(supabaseSession);
+    Object.assign(a, { mode: 'token', accessToken: parsed.accessToken, refreshToken: parsed.refreshToken, expiresAt: parsed.expiresAt });
+    if (parsed.username && !username) username = parsed.username;
+    mode = 'token';
+  }
   if (mode === 'cookie' || mode === 'token') a.mode = mode;
   if (typeof cookie === 'string' && cookie.trim()) a.cookie = cookie.trim().replace(/^cookie:\s*/i, '');
-  if (typeof accessToken === 'string' && accessToken.trim()) a.accessToken = accessToken.trim().replace(/^bearer\s+/i, '');
+  if (typeof accessToken === 'string' && accessToken.trim()) {
+    a.accessToken = accessToken.trim().replace(/^bearer\s+/i, '');
+    a.expiresAt = null;
+  }
   if (typeof refreshToken === 'string' && refreshToken.trim()) a.refreshToken = refreshToken.trim();
-  if (typeof username === 'string') a.username = username.trim().slice(0, 64);
+  if (typeof username === 'string' && username.trim()) a.username = username.trim().slice(0, 64);
   if (state.blocked === 'reconnect' && wm.hasCredentials()) state.blocked = null;
   schedule();
 }
 
 export function clearSession() {
-  Object.assign(state.auth, { cookie: '', accessToken: '', refreshToken: '' });
+  Object.assign(state.auth, { cookie: '', accessToken: '', refreshToken: '', expiresAt: null });
   schedule();
 }
 
