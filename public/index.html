@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WikiMasters Bot</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <div class="logo"><img src="/favicon.svg" alt="" width="32" height="32"></div>
+        <span>WikiMasters Bot</span>
+        <span class="pill active" id="status-pill">Active</span>
+      </div>
+      <div class="user">
+        <span id="username"></span>
+        <button class="link" id="logout">Log out</button>
+      </div>
+    </header>
+
+    <section class="card hero">
+      <div class="hero-top">
+        <div>
+          <div class="label" id="next-label">Next run</div>
+          <div class="countdown" id="countdown">—</div>
+        </div>
+        <div class="controls">
+          <button class="icon-btn" id="btn-settings" title="Paramètres" aria-label="Paramètres">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-pause" title="Pause" aria-label="Pause">
+            <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="5" width="3.2" height="14" rx="1"/><rect x="13.8" y="5" width="3.2" height="14" rx="1"/></svg>
+            <svg id="icon-play" viewBox="0 0 24 24" fill="currentColor" hidden><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+          </button>
+          <button class="btn-primary" id="btn-run">Run now</button>
+        </div>
+      </div>
+      <div class="progress"><div id="progress"></div></div>
+      <div id="blocked-notice"></div>
+    </section>
+
+    <section class="stats">
+      <div class="card stat"><div class="value" id="stat-packs">0</div><div class="caption">Packs opened</div></div>
+      <div class="card stat"><div class="value" id="stat-cards">0</div><div class="caption">Cards found</div></div>
+      <div class="card stat"><div class="value" id="stat-runs">0</div><div class="caption">Runs completed</div></div>
+    </section>
+
+    <section class="card">
+      <h2>Last run</h2>
+      <div id="last-run"><div class="empty">Aucun run pour l'instant.</div></div>
+      <div class="history" id="history-wrap" hidden>
+        <details>
+          <summary>Historique (<span id="history-count">0</span>)</summary>
+          <div class="list" id="history"></div>
+        </details>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <h3>Paramètres</h3>
+      <div class="row">
+        <div class="field">
+          <label for="interval">Intervalle (minutes)</label>
+          <input id="interval" type="number" min="10" max="1440" required>
+        </div>
+        <div class="field">
+          <label for="packs">Paquets max par run</label>
+          <input id="packs" type="number" min="1" max="20" required>
+        </div>
+      </div>
+      <hr>
+      <div class="status-line" id="session-status"></div>
+      <div class="row">
+        <div class="field">
+          <label for="mode">Mode d'authentification</label>
+          <select id="mode">
+            <option value="cookie">Cookie de session</option>
+            <option value="token">Access / refresh token</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="wm-username">Pseudo WikiMasters</label>
+          <input id="wm-username" maxlength="64" autocomplete="off">
+        </div>
+      </div>
+      <div class="field" data-mode="cookie">
+        <label for="cookie">Cookie (header <code>Cookie</code> copié depuis les DevTools)</label>
+        <textarea id="cookie" placeholder="Laisser vide pour conserver la valeur actuelle" autocomplete="off" spellcheck="false"></textarea>
+      </div>
+      <div data-mode="token" hidden>
+        <div class="field">
+          <label for="sb-session">Session Supabase (cookie <code>sb-…-auth-token</code>)</label>
+          <textarea id="sb-session" placeholder="Colle la valeur de .0 puis celle de .1 à la suite (commence par base64-…)" autocomplete="off" spellcheck="false"></textarea>
+          <small>Remplit automatiquement l'access token, le refresh token et le pseudo. Sinon, colle-les à la main ci-dessous.</small>
+        </div>
+        <div class="field">
+          <label for="access">Access token</label>
+          <textarea id="access" placeholder="Laisser vide pour conserver la valeur actuelle" autocomplete="off" spellcheck="false"></textarea>
+        </div>
+        <div class="field">
+          <label for="refresh">Refresh token</label>
+          <textarea id="refresh" placeholder="Laisser vide pour conserver la valeur actuelle" autocomplete="off" spellcheck="false"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="btn-clear-session">Oublier la session</button>
+        <div class="right">
+          <button type="button" class="btn-ghost" id="btn-cancel">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

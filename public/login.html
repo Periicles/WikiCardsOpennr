@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WikiMasters Bot — Connexion</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="card login-card" id="login">
+      <div class="brand">
+        <div class="logo"><img src="/favicon.svg" alt="" width="32" height="32"></div>
+        WikiMasters Bot
+      </div>
+      <div class="field">
+        <label for="password">Mot de passe du dashboard</label>
+        <input id="password" type="password" autocomplete="current-password" required autofocus>
+      </div>
+      <button class="btn-primary" type="submit" id="login-btn">Se connecter</button>
+      <div class="err" id="err"></div>
+    </form>
+  </div>
+  <script src="/login.js"></script>
+</body>
+</html>
