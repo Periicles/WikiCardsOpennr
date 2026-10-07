@@ -1,0 +1,14 @@
+{
+  "name": "wikimasters-bot",
+  "version": "1.0.0",
+  "description": "Bot auto-hébergé qui ouvre automatiquement les paquets WikiMasters, avec tableau de bord web.",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT"
+}
