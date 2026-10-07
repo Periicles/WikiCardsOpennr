@@ -227,9 +227,9 @@ export function normalizeRarity(raw) {
 function normalizeCard(c) {
   if (typeof c === 'string') return { title: c, rarity: '?' };
   const article = c.article && typeof c.article === 'object' ? c.article : {};
-  const title = c.title ?? c.name ?? c.label ?? article.title ?? c.article ?? c.page ?? 'Carte inconnue';
+  const title = c.wikipedia_title ?? c.title ?? c.name ?? c.label ?? article.title ?? c.article ?? c.page ?? 'Carte inconnue';
   const rarity = normalizeRarity(c.rarity_code ?? c.rarity ?? c.rarete ?? c.tier ?? article.rarity);
-  const url = c.url ?? article.url ?? null;
+  const url = c.wikipedia_url ?? c.url ?? article.url ?? null;
   return { title: String(title), rarity, ...(url ? { url } : {}) };
 }
 
