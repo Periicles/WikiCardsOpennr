@@ -60,11 +60,40 @@ const isAbsolute = (p) => /^https?:\/\//i.test(p);
 const resolveUrl = (p) => (isAbsolute(p) ? p : `${config.wm.baseUrl}${p}`);
 const isSupabaseUrl = (url) => Boolean(config.wm.supabaseUrl) && url.startsWith(config.wm.supabaseUrl);
 
+function supabaseProjectRef() {
+  const m = config.wm.supabaseUrl.match(/\/\/([^.]+)\.supabase/);
+  return m ? m[1] : '';
+}
+
+function buildSiteSessionCookie() {
+  const ref = supabaseProjectRef();
+  if (!ref || !state.auth.accessToken || !state.auth.refreshToken) return '';
+  const session = JSON.stringify({
+    access_token: state.auth.accessToken,
+    refresh_token: state.auth.refreshToken,
+    token_type: 'bearer',
+  });
+  const encoded = `base64-${Buffer.from(session).toString('base64url')}`;
+  const name = `sb-${ref}-auth-token`;
+  const CHUNK = 3180;
+  if (encoded.length <= CHUNK) return `${name}=${encoded}`;
+  const parts = [];
+  for (let i = 0; i * CHUNK < encoded.length; i++) {
+    parts.push(`${name}.${i}=${encoded.slice(i * CHUNK, (i + 1) * CHUNK)}`);
+  }
+  return parts.join('; ');
+}
+
 function authHeaders(url) {
   const h = {};
   if (state.auth.mode === 'cookie' && state.auth.cookie && !isSupabaseUrl(url)) h.Cookie = state.auth.cookie;
-  if (state.auth.mode === 'token' && state.auth.accessToken) h.Authorization = `Bearer ${state.auth.accessToken}`;
-  // Les endpoints Supabase (REST, RPC, edge functions) exigent la clé publique "anon".
+  if (state.auth.mode === 'token' && !isSupabaseUrl(url)) {
+    const cookie = buildSiteSessionCookie();
+    if (cookie) h.Cookie = cookie;
+  }
+  if (state.auth.mode === 'token' && state.auth.accessToken && isSupabaseUrl(url)) {
+    h.Authorization = `Bearer ${state.auth.accessToken}`;
+  }
   if (isSupabaseUrl(url) && config.wm.supabaseAnonKey) h.apikey = config.wm.supabaseAnonKey;
   return h;
 }
@@ -213,8 +242,8 @@ const RARITY_ALIASES = {
   pc: 'PC', uncommon: 'PC', 'peu commune': 'PC', 'peu_commune': 'PC', 'peu-commune': 'PC',
   r: 'R', rare: 'R',
   tr: 'TR', 'très rare': 'TR', 'tres rare': 'TR', 'tres_rare': 'TR', 'very rare': 'TR', 'very_rare': 'TR',
-  e: 'E', epic: 'E', épique: 'E', epique: 'E',
-  l: 'L', legendary: 'L', légendaire: 'L', legendaire: 'L',
+  e: 'E', epic: 'E', 'épique': 'E', epique: 'E',
+  l: 'L', legendary: 'L', 'légendaire': 'L', legendaire: 'L',
   m: 'M', mythic: 'M', mythique: 'M',
 };
 

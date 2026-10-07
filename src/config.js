@@ -24,7 +24,7 @@ export const config = {
   cookieSecure: env.COOKIE_SECURE === 'true',
   dataDir: path.resolve(env.DATA_DIR || './data'),
   wm: {
-    baseUrl: (env.WM_BASE_URL || 'https://wikimasters.fr').replace(/\/+$/, ''),
+    baseUrl: (env.WM_BASE_URL || 'https://www.wiki-masters.com').replace(/\/+$/, ''),
     openPackPath: env.WM_OPEN_PACK_PATH || '/api/packs/open',
     packsStatusPath: env.WM_PACKS_STATUS_PATH || '',
     refreshPath: env.WM_REFRESH_PATH || '/api/auth/refresh',
