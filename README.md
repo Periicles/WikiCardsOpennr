@@ -59,6 +59,74 @@ Les secrets ne sont jamais renvoyés au navigateur. Le tableau de bord indique s
 | Intervalle | 50 min | minimum 10 min (WikiMasters donne 1 paquet / 10 min, 10 max en stock) |
 | Paquets max par run | 5 | limité au nombre de paquets disponibles si `WM_PACKS_STATUS_PATH` est configuré |
 
+## Hébergement
+
+Le bot consomme très peu de ressources (< 30 Mo de RAM, CPU quasi nul entre les runs). N'importe quelle machine allumée en permanence convient.
+
+### Machine locale (recommandé)
+
+Un vieux PC, un portable, un Raspberry Pi (même un Zero 2 W) ou un NAS font l'affaire. Pour que le bot redémarre automatiquement :
+
+**Avec Docker :**
+
+```bash
+docker compose up -d --build
+# redémarre automatiquement au reboot (restart: unless-stopped dans docker-compose.yml)
+```
+
+**Avec pm2 (sans Docker) :**
+
+```bash
+npm install -g pm2
+pm2 start src/server.js --name wikicards
+pm2 save
+pm2 startup   # génère la commande pour lancer pm2 au démarrage
+```
+
+**Avec systemd (Linux) :**
+
+```ini
+# /etc/systemd/system/wikicards.service
+[Unit]
+Description=WikiMasters Bot
+After=network.target
+
+[Service]
+WorkingDirectory=/chemin/vers/wikicardsopennr
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+User=ton-user
+EnvironmentFile=/chemin/vers/wikicardsopennr/.env
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable --now wikicards
+```
+
+### Accès depuis l'extérieur (optionnel)
+
+Pour accéder au dashboard hors de chez toi :
+
+- **Cloudflare Tunnel** (gratuit) : expose `localhost:3000` sans ouvrir de port sur ta box. `cloudflared tunnel --url http://localhost:3000`.
+- **Tailscale** (gratuit) : VPN mesh, accès depuis ton téléphone sans exposition publique.
+- **Reverse proxy** (Caddy, Nginx) + port forwarding sur ta box : mets `COOKIE_SECURE=true` si tu passes en HTTPS.
+
+### Hébergement cloud gratuit
+
+Si tu n'as pas de machine locale :
+
+| Service | Gratuit | Toujours actif | Notes |
+|---|---|---|---|
+| **Oracle Cloud Free Tier** | 2 VMs (1 Go RAM) à vie | Oui | Le meilleur gratuit, mais inscription parfois refusée |
+| **Fly.io** | 3 micro VMs | Oui | Carte bancaire requise (non débitée) |
+| **Koyeb** | 1 nano instance | Oui | Déploiement depuis GitHub |
+| **Render** | 750 h/mois | Non (s'éteint après 15 min) | Pas adapté, le timer s'arrête |
+
+> **Vercel, Netlify, Cloudflare Workers** ne conviennent pas : ils sont conçus pour des fonctions courtes (serverless), pas pour un processus Node.js permanent avec un timer.
+
 ## Développement
 
 ```bash
